@@ -233,10 +233,6 @@
     AudioMoth_powerDownAndWakeMilliseconds(milliseconds); \
 }
 
-#define SERIAL_NUMBER                           "%08X%08X"
-
-#define FORMAT_SERIAL_NUMBER(src)               (unsigned int)*((uint32_t*)src + 1),  (unsigned int)*((uint32_t*)src)
-
 #define ABS(a)                                  ((a) < (0) ? (-a) : (a))
 
 #define MIN(a, b)                               ((a) < (b) ? (a) : (b))
@@ -551,7 +547,7 @@ static void setHeaderComment(wavHeader_t *wavHeader, configSettings_t *configSet
 
     char *artist = wavHeader->iart.artist;
 
-    sprintf(artist, "AudioMoth " SERIAL_NUMBER, FORMAT_SERIAL_NUMBER(serialNumber));
+    sprintf(artist, "AudioMoth " AM_SERIAL_NUMBER, AM_FORMAT_SERIAL_NUMBER(serialNumber));
 
     /* Clear comment field */
 
@@ -585,7 +581,7 @@ static void setHeaderComment(wavHeader_t *wavHeader, configSettings_t *configSet
 
     if (memcmp(deploymentID, defaultDeploymentID, DEPLOYMENT_ID_LENGTH)) {
 
-        comment += sprintf(comment, ") during deployment " SERIAL_NUMBER " ", FORMAT_SERIAL_NUMBER(deploymentID));
+        comment += sprintf(comment, ") during deployment " AM_SERIAL_NUMBER " ", AM_FORMAT_SERIAL_NUMBER(deploymentID));
 
     } else {
 
@@ -721,11 +717,11 @@ static uint32_t writeGuanoData(char *buffer, configSettings_t *configSettings, u
 
     /* General information */
     
-    length += sprintf(buffer + length, "GUANO|Version:1.0\nMake:Open Acoustic Devices\nModel:AudioMoth\nSerial:" SERIAL_NUMBER "\n", FORMAT_SERIAL_NUMBER(serialNumber));
+    length += sprintf(buffer + length, "GUANO|Version:1.0\nMake:Open Acoustic Devices\nModel:AudioMoth\nSerial:" AM_SERIAL_NUMBER "\n", AM_FORMAT_SERIAL_NUMBER(serialNumber));
 
     if (memcmp(deploymentID, defaultDeploymentID, DEPLOYMENT_ID_LENGTH)) {
 
-        length += sprintf(buffer + length, "OAD|Deployment ID:" SERIAL_NUMBER "\n", FORMAT_SERIAL_NUMBER(deploymentID));
+        length += sprintf(buffer + length, "OAD|Deployment ID:" AM_SERIAL_NUMBER "\n", AM_FORMAT_SERIAL_NUMBER(deploymentID));
 
     }
 
@@ -893,13 +889,13 @@ static bool writeConfigurationToFile(char *buffer, configSettings_t *configSetti
 
     RETURN_BOOL_ON_ERROR(AudioMoth_openFile("CONFIG.TXT"));
 
-    uint32_t length = sprintf(buffer, "Device ID                       : " SERIAL_NUMBER "\r\n", FORMAT_SERIAL_NUMBER(serialNumber));
+    uint32_t length = sprintf(buffer, "Device ID                       : " AM_SERIAL_NUMBER "\r\n", AM_FORMAT_SERIAL_NUMBER(serialNumber));
 
     length += sprintf(buffer + length, "Firmware                        : %s (%u.%u.%u)\r\n\r\n", firmwareDescription, firmwareVersion[0], firmwareVersion[1], firmwareVersion[2]);
 
     if (memcmp(deploymentID, defaultDeploymentID, DEPLOYMENT_ID_LENGTH)) {
 
-        length += sprintf(buffer + length, "Deployment ID                   : " SERIAL_NUMBER "\r\n\r\n", FORMAT_SERIAL_NUMBER(deploymentID));
+        length += sprintf(buffer + length, "Deployment ID                   : " AM_SERIAL_NUMBER "\r\n\r\n", AM_FORMAT_SERIAL_NUMBER(deploymentID));
 
     }
 
@@ -1477,7 +1473,7 @@ static int16_t secondaryBuffer[MAXIMUM_SAMPLES_IN_DMA_TRANSFER];
 
 /* Firmware version and description */
 
-static uint8_t firmwareVersion[AM_FIRMWARE_VERSION_LENGTH] = {1, 12, 0};
+static uint8_t firmwareVersion[AM_FIRMWARE_VERSION_LENGTH] = {1, 12, 2};
 
 static uint8_t firmwareDescription[AM_FIRMWARE_DESCRIPTION_LENGTH] = "AudioMoth-Firmware-Basic";
 
@@ -3077,7 +3073,7 @@ static void generateFolderAndFilename(char *foldername, char *filename, uint32_t
 
         uint8_t *source = memcmp(deploymentID, defaultDeploymentID, DEPLOYMENT_ID_LENGTH) ? deploymentID : (uint8_t*)AM_UNIQUE_ID_START_ADDRESS;
 
-        length += sprintf(filename + length, SERIAL_NUMBER "_", FORMAT_SERIAL_NUMBER(source));
+        length += sprintf(filename + length, AM_SERIAL_NUMBER "_", AM_FORMAT_SERIAL_NUMBER(source));
 
     }
     
