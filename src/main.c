@@ -223,7 +223,7 @@
 
 #define SALVAGE_AND_RETURN_ON_ERROR(fn) { \
     bool written = (fn); \
-    if (written != true) salvageRecording(effectiveSampleRate, MAX(numberOfSamplesInHeader, samplesWritten) - numberOfSamplesInHeader - totalNumberOfCompressedSamples - (numberOfCompressedBuffers > 0 ? COMPRESSION_BUFFER_SIZE_IN_BYTES / NUMBER_OF_BYTES_IN_SAMPLE : 0)); \
+    if (written != true) salvageRecording(filename, effectiveSampleRate, MAX(numberOfSamplesInHeader, samplesWritten) - numberOfSamplesInHeader - totalNumberOfCompressedSamples - (numberOfCompressedBuffers > 0 ? COMPRESSION_BUFFER_SIZE_IN_BYTES / NUMBER_OF_BYTES_IN_SAMPLE : 0)); \
     FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(written); \
 }
 
@@ -3093,11 +3093,17 @@ static void generateFolderAndFilename(char *foldername, char *filename, uint32_t
 
 /* Save recording to SD card */
 
-static void salvageRecording(uint32_t sampleRate, uint32_t numberOfSamples) {
+static void salvageRecording(char *filename, uint32_t sampleRate, uint32_t numberOfSamples) {
+
+    if (AudioMoth_closeFile() == false) return;
+
+    if (AudioMoth_appendFile(filename) == false) return;
 
     setHeaderDetails(&wavHeader, sampleRate, numberOfSamples, 0);
 
-    if (AudioMoth_seekInFile(0) && AudioMoth_writeToFile(&wavHeader, sizeof(wavHeader_t))) AudioMoth_closeFile();
+    if (AudioMoth_seekInFile(0)) AudioMoth_writeToFile(&wavHeader, sizeof(wavHeader_t));
+
+    AudioMoth_closeFile();
 
 }
 
@@ -3515,6 +3521,8 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
         SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, COMPRESSION_BUFFER_SIZE_IN_BYTES));
 
+        numberOfCompressedBuffers = 0;
+
         /* Clear LED */
 
         AudioMoth_setRedLED(false);
@@ -3548,7 +3556,7 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
     uint32_t guanoDataSize = writeGuanoData((char*)compressionBuffer, configSettings, actualRecordingStartTime, gpsLocationReceived, gpsLastFixLatitude, gpsLastFixLongitude, acousticLocationReceived, acousticLatitude, acousticLongitude, firmwareDescription, firmwareVersion, (uint8_t*)AM_UNIQUE_ID_START_ADDRESS, deploymentID, defaultDeploymentID, timeOffset > 0 ? newFilename : filename, extendedBatteryState, temperature, requestedFilterType);
 
-    FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, guanoDataSize));
+    SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, guanoDataSize));
 
     /* Initialise the WAV header */
 
