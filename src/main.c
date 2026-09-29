@@ -221,6 +221,12 @@
     } \
 }
 
+#define SALVAGE_AND_RETURN_ON_ERROR(fn) { \
+    bool written = (fn); \
+    if (written != true) salvageRecording(effectiveSampleRate, MAX(numberOfSamplesInHeader, samplesWritten) - numberOfSamplesInHeader - totalNumberOfCompressedSamples - (numberOfCompressedBuffers > 0 ? COMPRESSION_BUFFER_SIZE_IN_BYTES / NUMBER_OF_BYTES_IN_SAMPLE : 0)); \
+    FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(written); \
+}
+
 #define RETURN_BOOL_ON_ERROR(fn) { \
     bool success = (fn); \
     if (success != true) { \
@@ -3087,6 +3093,14 @@ static void generateFolderAndFilename(char *foldername, char *filename, uint32_t
 
 /* Save recording to SD card */
 
+static void salvageRecording(uint32_t sampleRate, uint32_t numberOfSamples) {
+
+    setHeaderDetails(&wavHeader, sampleRate, numberOfSamples, 0);
+
+    if (AudioMoth_seekInFile(0) && AudioMoth_writeToFile(&wavHeader, sizeof(wavHeader_t))) AudioMoth_closeFile();
+
+}
+
 static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t recordDuration, uint32_t timeAtWhichToSwitchOffLED, AM_extendedBatteryState_t extendedBatteryState, int32_t temperature, uint32_t *fileOpenTime, uint32_t *fileOpenMilliseconds) {
 
     /* Initialise buffers */
@@ -3405,7 +3419,7 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
                     totalNumberOfCompressedSamples += (numberOfCompressedBuffers - 1) * COMPRESSION_BUFFER_SIZE_IN_BYTES / NUMBER_OF_BYTES_IN_SAMPLE;
 
-                    FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, COMPRESSION_BUFFER_SIZE_IN_BYTES));
+                    SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, COMPRESSION_BUFFER_SIZE_IN_BYTES));
 
                     numberOfCompressedBuffers = 0;
 
@@ -3417,7 +3431,7 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
                     if (buffersProcessed == 0) memcpy(buffers[readBuffer], &wavHeader, sizeof(wavHeader_t));
 
-                    FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(buffers[readBuffer], NUMBER_OF_BYTES_IN_SAMPLE * numberOfSamplesToWrite));
+                    SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(buffers[readBuffer], NUMBER_OF_BYTES_IN_SAMPLE * numberOfSamplesToWrite));
 
                 } else {
 
@@ -3435,7 +3449,7 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
                         if (writeHeader) memcpy(compressionBuffer, &wavHeader, sizeof(wavHeader_t));
 
-                        FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, NUMBER_OF_BYTES_IN_SAMPLE * numberOfSamples));
+                        SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, NUMBER_OF_BYTES_IN_SAMPLE * numberOfSamples));
                             
                         if (writeHeader) memset(compressionBuffer, 0, sizeof(wavHeader_t));
 
@@ -3499,7 +3513,7 @@ static AM_recordingState_t makeRecording(uint32_t timeOfNextRecording, uint32_t 
 
         totalNumberOfCompressedSamples += (numberOfCompressedBuffers - 1) * COMPRESSION_BUFFER_SIZE_IN_BYTES / NUMBER_OF_BYTES_IN_SAMPLE;
 
-        FLASH_LED_IF_ENABLED_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, COMPRESSION_BUFFER_SIZE_IN_BYTES));
+        SALVAGE_AND_RETURN_ON_ERROR(AudioMoth_writeToFile(compressionBuffer, COMPRESSION_BUFFER_SIZE_IN_BYTES));
 
         /* Clear LED */
 
